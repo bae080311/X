@@ -19,7 +19,7 @@ const Username = styled.span`
 `;
 
 const Payload = styled.p`
-  margin: 10px 0px;
+  margin: 10px 0;
   font-size: 18px;
 `;
 
@@ -39,25 +39,31 @@ const DeleteButton = styled.button`
   text-transform: uppercase;
   border-radius: 5px;
   cursor: pointer;
+  margin-top: 10px;
 `;
 
-export default function Tweeet({ username, photo, tweet, userId, id }: ITweet) {
+export default function Tweet({ username, photo, tweet, userId, id }: ITweet) {
   const user = auth.currentUser;
+
   const onDelete = async () => {
-    if (user?.uid !== userId) return;
+    if (!user || user.uid !== userId) return;
+
     try {
       await deleteDoc(doc(db, "tweets", id));
+      console.log(`Tweet with id ${id} deleted successfully.`);
     } catch (e) {
-      console.error(e);
-    } finally {
+      console.error("Error deleting tweet:", e);
     }
   };
+
   return (
     <Wrapper>
       <Column>
         <Username>{username}</Username>
         <Payload>{tweet}</Payload>
-        {user?.uid === userId ? <DeleteButton>Delete</DeleteButton> : null}
+        {user?.uid === userId && (
+          <DeleteButton onClick={onDelete}>Delete</DeleteButton>
+        )}
       </Column>
       <Column>{photo ? <Photo src={photo} /> : null}</Column>
     </Wrapper>

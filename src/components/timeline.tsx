@@ -1,13 +1,12 @@
 import {
   collection,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { styled } from "styled-components";
+import styled from "styled-components";
 import { db } from "../firebase";
 import Tweet from "./tweet";
 import { Unsubscribe } from "firebase/auth";
@@ -25,51 +24,43 @@ const Wrapper = styled.div`
   display: flex;
   gap: 10px;
   flex-direction: column;
+  overflow-y: scroll;
 `;
 
 export default function Timeline() {
-  const [tweets, setTweet] = useState<ITweet[]>([]);
+  const [tweets, setTweets] = useState<ITweet[]>([]);
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | null = null;
+
     const fetchTweets = async () => {
       const tweetsQuery = query(
         collection(db, "tweets"),
         orderBy("createdAt", "desc"),
         limit(25)
       );
-      /* const spanshot = await getDocs(tweetsQuery);
-        const tweets = spanshot.docs.map((doc) => {
-          const { tweet, createdAt, userId, username, photo } = doc.data();
+
+      unsubscribe = onSnapshot(tweetsQuery, (snapshot) => {
+        const fetchedTweets = snapshot.docs.map((doc) => {
+          const data = doc.data() as Partial<ITweet>; // ITweet의 일부 속성만 사용
           return {
-            tweet,
-            createdAt,
-            userId,
-            username,
-            photo,
             id: doc.id,
-          };
-        }); */
-      unsubscribe = await onSnapshot(tweetsQuery, (snapshot) => {
-        const tweets = snapshot.docs.map((doc) => {
-          const { tweet, createdAt, userId, username, photo } = doc.data();
-          return {
-            tweet,
-            createdAt,
-            userId,
-            username,
-            photo,
-            id: doc.id,
-          };
+            ...data,
+          } as ITweet;
         });
-        setTweet(tweets);
+        setTweets(fetchedTweets);
       });
     };
+
     fetchTweets();
+
     return () => {
-      unsubscribe && unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
+
   return (
     <Wrapper>
       {tweets.map((tweet) => (
