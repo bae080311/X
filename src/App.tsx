@@ -39,6 +39,7 @@ const GlobalStyles = createGlobalStyle`
     box-sizing: border-box;
   }
   body {
+  flex-direction: column;
   display: flex;
     justify-content: center;
     background-color: black;
