@@ -1,8 +1,25 @@
-import { useState } from "react";
-import { auth, storage } from "../firebase";
+import { useEffect, useState } from "react";
+import { auth, db, storage } from "../firebase";
 import styled from "styled-components";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { ITweet } from "../components/timeline";
+import Tweet from "../components/tweet";
+
+const Tweets = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+`;
 
 const Wrapper = styled.div`
   display: flex;
@@ -10,6 +27,7 @@ const Wrapper = styled.div`
   flex-direction: column;
   gap: 20px;
 `;
+
 const AvatarUpload = styled.label`
   width: 80px;
   overflow: hidden;
@@ -24,18 +42,22 @@ const AvatarUpload = styled.label`
     width: 50px;
   }
 `;
+
 const AvatarImg = styled.img`
   width: 100%;
 `;
+
 const AvatarInput = styled.input`
   display: none;
 `;
+
 const Name = styled.span`
   font-size: 22px;
 `;
 
 export default function Profile() {
   const user = auth.currentUser;
+  const [tweets, setTweets] = useState<ITweet[]>([]);
   const [avatar, setAvatar] = useState(user?.photoURL);
 
   const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,6 +77,34 @@ export default function Profile() {
       console.error("Error uploading avatar: ", error);
     }
   };
+
+  const fetchTweets = async () => {
+    if (!user) return;
+
+    const tweetsQuery = query(
+      collection(db, "tweets"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(25)
+    );
+    const snapshot = await getDocs(tweetsQuery);
+    const tweets = snapshot.docs.map((doc) => {
+      const { tweet, createdAt, userId, username, photo } = doc.data();
+      return {
+        tweet,
+        createdAt,
+        userId,
+        username,
+        photo,
+        id: doc.id,
+      };
+    });
+    setTweets(tweets);
+  };
+
+  useEffect(() => {
+    fetchTweets();
+  }, [user]);
 
   return (
     <Wrapper>
@@ -79,6 +129,11 @@ export default function Profile() {
         accept="image/*"
       />
       <Name>{user?.displayName ?? "Anonymous"}</Name>
+      <Tweets>
+        {tweets.map((tweet) => (
+          <Tweet key={tweet.id} {...tweet} />
+        ))}
+      </Tweets>
     </Wrapper>
   );
 }
