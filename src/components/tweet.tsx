@@ -1,5 +1,7 @@
 import styled from "styled-components";
 import { ITweet } from "./timeline";
+import { auth, db } from "../firebase";
+import { deleteDoc, doc } from "firebase/firestore";
 
 const Wrapper = styled.div`
   display: grid;
@@ -27,18 +29,37 @@ const Photo = styled.img`
   border-radius: 15px;
 `;
 
-export default function Tweeet({ username, photo, tweet }: ITweet) {
+const DeleteButton = styled.button`
+  background-color: tomato;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 12px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
+export default function Tweeet({ username, photo, tweet, userId, id }: ITweet) {
+  const user = auth.currentUser;
+  const onDelete = async () => {
+    if (user?.uid !== userId) return;
+    try {
+      await deleteDoc(doc(db, "tweets", id));
+    } catch (e) {
+      console.error(e);
+    } finally {
+    }
+  };
   return (
     <Wrapper>
       <Column>
         <Username>{username}</Username>
         <Payload>{tweet}</Payload>
+        {user?.uid === userId ? <DeleteButton>Delete</DeleteButton> : null}
       </Column>
-      {photo ? (
-        <Column>
-          <Photo src={photo} />
-        </Column>
-      ) : null}
+      <Column>{photo ? <Photo src={photo} /> : null}</Column>
     </Wrapper>
   );
 }
