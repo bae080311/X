@@ -1,7 +1,8 @@
+import React, { useState } from "react";
 import styled from "styled-components";
 import { ITweet } from "./timeline";
 import { auth, db } from "../firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 
 const Wrapper = styled.div`
   display: grid;
@@ -40,10 +41,41 @@ const DeleteButton = styled.button`
   border-radius: 5px;
   cursor: pointer;
   margin-top: 10px;
+  margin-right: 10px;
+`;
+
+const EditButton = styled.button`
+  background-color: #1d9bf0;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 12px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
+const EditForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+`;
+
+const EditInput = styled.textarea`
+  font-size: 18px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #1d9bf0;
+  margin-bottom: 10px;
+  resize: none;
+  margin-right: 10px;
 `;
 
 export default function Tweet({ username, photo, tweet, userId, id }: ITweet) {
   const user = auth.currentUser;
+  const [isEditing, setIsEditing] = useState(false);
+  const [newTweet, setNewTweet] = useState(tweet);
 
   const onDelete = async () => {
     if (!user || user.uid !== userId) return;
@@ -56,13 +88,42 @@ export default function Tweet({ username, photo, tweet, userId, id }: ITweet) {
     }
   };
 
+  const onEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user || user.uid !== userId) return;
+
+    try {
+      const tweetDoc = doc(db, "tweets", id);
+      await updateDoc(tweetDoc, { tweet: newTweet });
+      console.log(`Tweet with id ${id} updated successfully.`);
+      setIsEditing(false);
+    } catch (e) {
+      console.error("Error updating tweet:", e);
+    }
+  };
+
   return (
     <Wrapper>
       <Column>
         <Username>{username}</Username>
-        <Payload>{tweet}</Payload>
+        {isEditing ? (
+          <EditForm onSubmit={onEdit}>
+            <EditInput
+              value={newTweet}
+              onChange={(e) => setNewTweet(e.target.value)}
+            />
+            <EditButton type="submit">Save</EditButton>
+          </EditForm>
+        ) : (
+          <Payload>{tweet}</Payload>
+        )}
         {user?.uid === userId && (
-          <DeleteButton onClick={onDelete}>Delete</DeleteButton>
+          <>
+            <DeleteButton onClick={onDelete}>Delete</DeleteButton>
+            <EditButton onClick={() => setIsEditing((prev) => !prev)}>
+              {isEditing ? "Cancel" : "Edit"}
+            </EditButton>
+          </>
         )}
       </Column>
       <Column>{photo ? <Photo src={photo} /> : null}</Column>
