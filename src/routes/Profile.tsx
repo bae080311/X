@@ -55,10 +55,38 @@ const Name = styled.span`
   font-size: 22px;
 `;
 
+const EditNameForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+`;
+
+const EditNameInput = styled.input`
+  font-size: 18px;
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+`;
+
+const EditNameButton = styled.button`
+  background-color: #1d9bf0;
+  color: white;
+  font-weight: 600;
+  border: none;
+  font-size: 14px;
+  padding: 5px 10px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
 export default function Profile() {
   const user = auth.currentUser;
   const [tweets, setTweets] = useState<ITweet[]>([]);
   const [avatar, setAvatar] = useState(user?.photoURL);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState(user?.displayName || "");
 
   const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
@@ -106,6 +134,20 @@ export default function Profile() {
     fetchTweets();
   }, [user]);
 
+  const onNameChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!user || newName.trim() === "") return;
+
+    try {
+      await updateProfile(user, {
+        displayName: newName,
+      });
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Error updating name: ", error);
+    }
+  };
+
   return (
     <Wrapper>
       <AvatarUpload htmlFor="avatar">
@@ -128,7 +170,22 @@ export default function Profile() {
         type="file"
         accept="image/*"
       />
-      <Name>{user?.displayName ?? "Anonymous"}</Name>
+      {isEditingName ? (
+        <EditNameForm onSubmit={onNameChange}>
+          <EditNameInput
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <EditNameButton type="submit">Save</EditNameButton>
+        </EditNameForm>
+      ) : (
+        <>
+          <Name>{user?.displayName ?? "Anonymous"}</Name>
+          <EditNameButton onClick={() => setIsEditingName(true)}>
+            Edit Name
+          </EditNameButton>
+        </>
+      )}
       <Tweets>
         {tweets.map((tweet) => (
           <Tweet key={tweet.id} {...tweet} />
